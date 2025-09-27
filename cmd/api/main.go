@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/truora/stock-api/internal/config"
+	"github.com/truora/stock-api/internal/repository/cockroachdb"
 	"github.com/truora/stock-api/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -29,6 +30,22 @@ func main() {
 	log.Info("Starting Stock API service",
 		zap.String("env", cfg.Server.Env),
 		zap.String("port", cfg.Server.Port))
+
+	// Initialize database connection
+	db, err := cockroachdb.NewConnection(&cfg.Database)
+	if err != nil {
+		log.Fatal("Failed to connect to database", zap.Error(err))
+	}
+	defer db.Close()
+
+	log.Info("Database connection established")
+
+	// Initialize database schema
+	if err := cockroachdb.InitSchema(db); err != nil {
+		log.Fatal("Failed to initialize database schema", zap.Error(err))
+	}
+
+	log.Info("Database schema initialized")
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Info("Request received", zap.String("path", r.URL.Path), zap.String("method", r.Method))
