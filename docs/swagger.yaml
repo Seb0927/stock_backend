@@ -1,0 +1,290 @@
+basePath: /
+definitions:
+  domain.Stock:
+    properties:
+      action:
+        type: string
+      brokerage:
+        type: string
+      company:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      rating_from:
+        type: string
+      rating_to:
+        type: string
+      target_from:
+        type: string
+      target_to:
+        type: string
+      ticker:
+        type: string
+      time:
+        type: string
+      updated_at:
+        type: string
+    required:
+    - company
+    - ticker
+    type: object
+  handler.MetaData:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  handler.PaginatedResponse:
+    properties:
+      data: {}
+      meta:
+        $ref: '#/definitions/handler.MetaData'
+      success:
+        type: boolean
+    type: object
+  handler.Response:
+    properties:
+      data: {}
+      error:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API for managing stock data from external sources
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Stock API
+  version: "1.0"
+paths:
+  /api/v1/stocks:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves stocks with optional filtering and pagination
+      parameters:
+      - description: Filter by ticker
+        in: query
+        name: ticker
+        type: string
+      - description: Filter by company name (partial match)
+        in: query
+        name: company
+        type: string
+      - description: Filter by brokerage name (partial match)
+        in: query
+        name: brokerage
+        type: string
+      - description: Filter by action
+        in: query
+        name: action
+        type: string
+      - default: 50
+        description: Number of items per page
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.PaginatedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Get stocks
+      tags:
+      - stocks
+    post:
+      consumes:
+      - application/json
+      description: Creates a new stock record
+      parameters:
+      - description: Stock data
+        in: body
+        name: stock
+        required: true
+        schema:
+          $ref: '#/definitions/domain.Stock'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Create a new stock
+      tags:
+      - stocks
+  /api/v1/stocks/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a stock record
+      parameters:
+      - description: Stock ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Delete a stock
+      tags:
+      - stocks
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single stock by its ID
+      parameters:
+      - description: Stock ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Get stock by ID
+      tags:
+      - stocks
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing stock record
+      parameters:
+      - description: Stock ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Stock data
+        in: body
+        name: stock
+        required: true
+        schema:
+          $ref: '#/definitions/domain.Stock'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Update a stock
+      tags:
+      - stocks
+  /api/v1/stocks/sync:
+    post:
+      consumes:
+      - application/json
+      description: Fetches all stocks from the external API and stores them in the
+        database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Sync stocks from external API
+      tags:
+      - stocks
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Check if the API is healthy
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Health check
+      tags:
+      - system
+schemes:
+- http
+- https
+swagger: "2.0"

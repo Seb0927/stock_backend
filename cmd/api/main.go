@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/truora/stock-api/docs"
 	"github.com/truora/stock-api/internal/client"
 	"github.com/truora/stock-api/internal/config"
 	"github.com/truora/stock-api/internal/handler"

@@ -2,6 +2,8 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/truora/stock-api/internal/handler"
 	"github.com/truora/stock-api/internal/middleware"
 	"go.uber.org/zap"
@@ -21,6 +23,9 @@ func SetupRouter(stockHandler *handler.StockHandler, logger *zap.Logger) *gin.En
 
 	// Health check endpoint
 	router.GET("/health", stockHandler.HealthCheck)
+
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// API v1 routes
 	v1 := router.Group("/api/v1")
