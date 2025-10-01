@@ -9,16 +9,7 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "http://swagger.io/terms/",
-        "contact": {
-            "name": "API Support",
-            "url": "http://www.swagger.io/support",
-            "email": "support@swagger.io"
-        },
-        "license": {
-            "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
-        },
+        "contact": {},
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -82,50 +73,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/handler.PaginatedResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/handler.Response"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Creates a new stock record",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "stocks"
-                ],
-                "summary": "Create a new stock",
-                "parameters": [
-                    {
-                        "description": "Stock data",
-                        "name": "stock",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.Stock"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/handler.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/handler.Response"
                         }
                     },
                     "500": {
@@ -214,111 +161,6 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "put": {
-                "description": "Updates an existing stock record",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "stocks"
-                ],
-                "summary": "Update a stock",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Stock ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Stock data",
-                        "name": "stock",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.Stock"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/handler.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/handler.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/handler.Response"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Deletes a stock record",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "stocks"
-                ],
-                "summary": "Delete a stock",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Stock ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handler.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/handler.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/handler.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/handler.Response"
-                        }
-                    }
-                }
             }
         },
         "/health": {
@@ -346,51 +188,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "domain.Stock": {
-            "type": "object",
-            "required": [
-                "company",
-                "ticker"
-            ],
-            "properties": {
-                "action": {
-                    "type": "string"
-                },
-                "brokerage": {
-                    "type": "string"
-                },
-                "company": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "rating_from": {
-                    "type": "string"
-                },
-                "rating_to": {
-                    "type": "string"
-                },
-                "target_from": {
-                    "type": "string"
-                },
-                "target_to": {
-                    "type": "string"
-                },
-                "ticker": {
-                    "type": "string"
-                },
-                "time": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
         "handler.MetaData": {
             "type": "object",
             "properties": {
@@ -439,8 +236,8 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
-	BasePath:         "/",
-	Schemes:          []string{"http", "https"},
+	BasePath:         "/api/v1",
+	Schemes:          []string{},
 	Title:            "Stock API",
 	Description:      "API for managing stock data from external sources",
 	InfoInstanceName: "swagger",
