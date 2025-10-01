@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/truora/stock-api/internal/client"
 	"github.com/truora/stock-api/internal/domain"
 	"go.uber.org/zap"
 )
@@ -13,12 +12,12 @@ import (
 // StockUseCase handles business logic for stock operations
 type StockUseCase struct {
 	repo      domain.StockRepository
-	apiClient *client.StockAPIClient
+	apiClient domain.StockAPIClient
 	logger    *zap.Logger
 }
 
 // NewStockUseCase creates a new StockUseCase
-func NewStockUseCase(repo domain.StockRepository, apiClient *client.StockAPIClient, logger *zap.Logger) *StockUseCase {
+func NewStockUseCase(repo domain.StockRepository, apiClient domain.StockAPIClient, logger *zap.Logger) *StockUseCase {
 	return &StockUseCase{
 		repo:      repo,
 		apiClient: apiClient,

@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"time"
 )
 
@@ -36,4 +37,9 @@ type StockRepository interface {
 	FindByID(id int64) (*Stock, error)
 	FindAll(filter StockFilter) ([]*Stock, error)
 	Count(filter StockFilter) (int64, error)
+}
+
+// StockAPIClient defines the interface for fetching stocks from external API
+type StockAPIClient interface {
+	FetchAllStocks(ctx context.Context) ([]*Stock, error)
 }
