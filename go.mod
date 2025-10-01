@@ -1,4 +1,4 @@
-module github.com/truora/stock-api
+module github.com/company/stock-api
 
 go 1.23.0
 

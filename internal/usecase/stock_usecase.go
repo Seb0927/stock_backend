@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/truora/stock-api/internal/domain"
+	"github.com/company/stock-api/internal/domain"
 	"go.uber.org/zap"
 )
 

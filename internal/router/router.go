@@ -1,11 +1,11 @@
 package router
 
 import (
+	"github.com/company/stock-api/internal/handler"
+	"github.com/company/stock-api/internal/middleware"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"github.com/truora/stock-api/internal/handler"
-	"github.com/truora/stock-api/internal/middleware"
 	"go.uber.org/zap"
 )
 

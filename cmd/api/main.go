@@ -16,14 +16,14 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/truora/stock-api/docs"
-	"github.com/truora/stock-api/internal/client"
-	"github.com/truora/stock-api/internal/config"
-	"github.com/truora/stock-api/internal/handler"
-	"github.com/truora/stock-api/internal/repository/cockroachdb"
-	"github.com/truora/stock-api/internal/router"
-	"github.com/truora/stock-api/internal/usecase"
-	"github.com/truora/stock-api/pkg/logger"
+	_ "github.com/company/stock-api/docs"
+	"github.com/company/stock-api/internal/client"
+	"github.com/company/stock-api/internal/config"
+	"github.com/company/stock-api/internal/handler"
+	"github.com/company/stock-api/internal/repository/cockroachdb"
+	"github.com/company/stock-api/internal/router"
+	"github.com/company/stock-api/internal/usecase"
+	"github.com/company/stock-api/pkg/logger"
 	"go.uber.org/zap"
 )
 

@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/company/stock-api/internal/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/truora/stock-api/internal/domain"
 	"go.uber.org/zap"
 )
 

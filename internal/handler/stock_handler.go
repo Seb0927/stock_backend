@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/company/stock-api/internal/domain"
+	"github.com/company/stock-api/internal/usecase"
 	"github.com/gin-gonic/gin"
-	"github.com/truora/stock-api/internal/domain"
-	"github.com/truora/stock-api/internal/usecase"
 	"go.uber.org/zap"
 )
 

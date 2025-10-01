@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/company/stock-api/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/truora/stock-api/internal/config"
 )
 
 // NewConnection creates a new database connection pool

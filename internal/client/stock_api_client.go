@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/truora/stock-api/internal/config"
-	"github.com/truora/stock-api/internal/domain"
+	"github.com/company/stock-api/internal/config"
+	"github.com/company/stock-api/internal/domain"
 )
 
 // StockAPIResponse represents the response from the external stock API
