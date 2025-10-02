@@ -83,6 +83,7 @@ func (h *StockHandler) SyncStocks(c *gin.Context) {
 // @Param company query string false "Filter by company name (partial match)"
 // @Param brokerage query string false "Filter by brokerage name (partial match)"
 // @Param action query string false "Filter by action"
+// @Param rating query string false "Filter by rating_to"
 // @Param limit query int false "Number of items per page" default(50)
 // @Param offset query int false "Number of items to skip" default(0)
 // @Success 200 {object} PaginatedResponse
@@ -94,6 +95,7 @@ func (h *StockHandler) GetStocks(c *gin.Context) {
 		Company:   c.Query("company"),
 		Brokerage: c.Query("brokerage"),
 		Action:    c.Query("action"),
+		Rating:    c.Query("rating"),
 		Limit:     h.parseIntQuery(c, "limit", 50),
 		Offset:    h.parseIntQuery(c, "offset", 0),
 	}

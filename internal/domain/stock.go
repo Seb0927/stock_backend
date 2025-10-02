@@ -27,6 +27,7 @@ type StockFilter struct {
 	Company   string
 	Brokerage string
 	Action    string
+	Rating    string
 	Limit     int
 	Offset    int
 }

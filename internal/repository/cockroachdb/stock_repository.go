@@ -167,6 +167,12 @@ func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.Stock, e
 		argPos++
 	}
 
+	if filter.Rating != "" {
+		query += fmt.Sprintf(" AND rating_to = $%d", argPos)
+		args = append(args, filter.Rating)
+		argPos++
+	}
+
 	query += " ORDER BY time DESC"
 
 	if filter.Limit > 0 {
@@ -246,6 +252,12 @@ func (r *StockRepository) Count(filter domain.StockFilter) (int64, error) {
 	if filter.Action != "" {
 		query += fmt.Sprintf(" AND action = $%d", argPos)
 		args = append(args, filter.Action)
+		argPos++
+	}
+
+	if filter.Rating != "" {
+		query += fmt.Sprintf(" AND rating_to = $%d", argPos)
+		args = append(args, filter.Rating)
 	}
 
 	var count int64

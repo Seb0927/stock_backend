@@ -56,6 +56,10 @@ paths:
         in: query
         name: action
         type: string
+      - description: Filter by rating_to
+        in: query
+        name: rating
+        type: string
       - default: 50
         description: Number of items per page
         in: query
