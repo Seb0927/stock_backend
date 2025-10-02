@@ -7,7 +7,7 @@ import (
 
 // Stock represents a stock rating/target information from brokerages
 type Stock struct {
-	ID         int64     `json:"id" db:"id"`
+	ID         int64     `json:"id,string" db:"id"`
 	Ticker     string    `json:"ticker" db:"ticker" binding:"required"`
 	TargetFrom string    `json:"target_from" db:"target_from"`
 	TargetTo   string    `json:"target_to" db:"target_to"`
