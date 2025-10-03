@@ -134,6 +134,71 @@ func TestStockUseCase_GetStocks(t *testing.T) {
 		assert.Equal(t, "AAPL", stocks[0].Ticker)
 		mockRepo.AssertExpectations(t)
 	})
+
+	t.Run("Success with rating filters", func(t *testing.T) {
+		expectedStocks := []*domain.Stock{
+			{ID: 1, Ticker: "AAPL", Company: "Apple Inc.", RatingFrom: "Neutral", RatingTo: "Overweight", Time: time.Now()},
+		}
+
+		filter := domain.StockFilter{
+			RatingFrom: "Neutral",
+			RatingTo:   "Overweight",
+			Limit:      50,
+		}
+		mockRepo.On("FindAll", filter).Return(expectedStocks, nil).Once()
+
+		stocks, err := useCase.GetStocks(context.Background(), filter)
+
+		assert.NoError(t, err)
+		assert.Len(t, stocks, 1)
+		assert.Equal(t, "Neutral", stocks[0].RatingFrom)
+		assert.Equal(t, "Overweight", stocks[0].RatingTo)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("Success with sorting parameters", func(t *testing.T) {
+		expectedStocks := []*domain.Stock{
+			{ID: 1, Ticker: "AAPL", Company: "Apple Inc.", Time: time.Now()},
+			{ID: 2, Ticker: "GOOGL", Company: "Google", Time: time.Now()},
+		}
+
+		filter := domain.StockFilter{
+			SortBy:    "ticker",
+			SortOrder: "asc",
+			Limit:     50,
+		}
+		mockRepo.On("FindAll", filter).Return(expectedStocks, nil).Once()
+
+		stocks, err := useCase.GetStocks(context.Background(), filter)
+
+		assert.NoError(t, err)
+		assert.Len(t, stocks, 2)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("Success with complex filters", func(t *testing.T) {
+		expectedStocks := []*domain.Stock{
+			{ID: 1, Ticker: "AAPL", Company: "Apple Inc.", RatingTo: "Overweight", Time: time.Now()},
+		}
+
+		filter := domain.StockFilter{
+			Company:   "Apple",
+			RatingTo:  "Overweight",
+			SortBy:    "time",
+			SortOrder: "desc",
+			Limit:     10,
+			Offset:    0,
+		}
+		mockRepo.On("FindAll", filter).Return(expectedStocks, nil).Once()
+
+		stocks, err := useCase.GetStocks(context.Background(), filter)
+
+		assert.NoError(t, err)
+		assert.Len(t, stocks, 1)
+		assert.Equal(t, "Apple Inc.", stocks[0].Company)
+		assert.Equal(t, "Overweight", stocks[0].RatingTo)
+		mockRepo.AssertExpectations(t)
+	})
 }
 
 func TestStockUseCase_GetStockCount(t *testing.T) {
