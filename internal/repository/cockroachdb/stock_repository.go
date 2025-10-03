@@ -173,7 +173,30 @@ func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.Stock, e
 		argPos++
 	}
 
-	query += " ORDER BY time DESC"
+	// Build ORDER BY clause
+	sortBy := "time"
+	if filter.SortBy != "" {
+		// Validate sortBy to prevent SQL injection
+		validSortFields := map[string]bool{
+			"ticker":    true,
+			"company":   true,
+			"time":      true,
+			"rating_to": true,
+			"action":    true,
+			"brokerage": true,
+			"target_to": true,
+		}
+		if validSortFields[filter.SortBy] {
+			sortBy = filter.SortBy
+		}
+	}
+
+	sortOrder := "DESC"
+	if filter.SortOrder == "asc" || filter.SortOrder == "ASC" {
+		sortOrder = "ASC"
+	}
+
+	query += fmt.Sprintf(" ORDER BY %s %s", sortBy, sortOrder)
 
 	if filter.Limit > 0 {
 		query += fmt.Sprintf(" LIMIT $%d", argPos)

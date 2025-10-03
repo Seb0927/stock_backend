@@ -60,6 +60,16 @@ paths:
         in: query
         name: rating
         type: string
+      - default: time
+        description: Sort by field (ticker, company, time, rating_to, action)
+        in: query
+        name: sortBy
+        type: string
+      - default: desc
+        description: Sort order (asc, desc)
+        in: query
+        name: sortOrder
+        type: string
       - default: 50
         description: Number of items per page
         in: query
