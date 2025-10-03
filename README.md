@@ -196,9 +196,48 @@ curl http://localhost:8080/api/v1/stocks?ticker=AAPL
 # Filter by company (partial match)
 curl http://localhost:8080/api/v1/stocks?company=Apple
 
-# Multiple filters
-curl "http://localhost:8080/api/v1/stocks?ticker=AAPL&limit=5"
+# Filter by brokerage
+curl http://localhost:8080/api/v1/stocks?brokerage=Morgan
+
+# Filter by action
+curl http://localhost:8080/api/v1/stocks?action=upgrade
+
+# Filter by rating_from (original rating)
+curl http://localhost:8080/api/v1/stocks?rating_from=Neutral
+
+# Filter by rating_to (target rating)
+curl http://localhost:8080/api/v1/stocks?rating_to=Overweight
+
+# Filter by both ratings
+curl "http://localhost:8080/api/v1/stocks?rating_from=Neutral&rating_to=Overweight"
+
+# Sort by ticker (ascending)
+curl "http://localhost:8080/api/v1/stocks?sortBy=ticker&sortOrder=asc"
+
+# Sort by company name
+curl "http://localhost:8080/api/v1/stocks?sortBy=company&sortOrder=asc"
+
+# Sort by time (default: descending - newest first)
+curl "http://localhost:8080/api/v1/stocks?sortBy=time&sortOrder=desc"
+
+# Multiple filters with sorting and pagination
+curl "http://localhost:8080/api/v1/stocks?ticker=AAPL&sortBy=time&sortOrder=desc&limit=5&offset=0"
+
+# Complex query: filter by company and rating, sort by time
+curl "http://localhost:8080/api/v1/stocks?company=Apple&rating_to=Overweight&sortBy=time&sortOrder=desc&limit=10"
 ```
+
+**Available Query Parameters:**
+- `ticker` - Filter by exact ticker symbol (e.g., AAPL, GOOGL)
+- `company` - Filter by company name (partial match, case-insensitive)
+- `brokerage` - Filter by brokerage name (partial match, case-insensitive)
+- `action` - Filter by action type (e.g., upgrade, downgrade, initiated)
+- `rating_from` - Filter by original rating
+- `rating_to` - Filter by target rating
+- `sortBy` - Sort field: `ticker`, `company`, `time`, `rating_to`, `action`, `brokerage`, `target_to` (default: `time`)
+- `sortOrder` - Sort direction: `asc` or `desc` (default: `desc`)
+- `limit` - Number of items per page (default: 50)
+- `offset` - Number of items to skip for pagination (default: 0)
 
 #### Get stock by ID
 
