@@ -55,8 +55,14 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "Filter by rating_from",
+                        "name": "rating_from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "Filter by rating_to",
-                        "name": "rating",
+                        "name": "rating_to",
                         "in": "query"
                     },
                     {

@@ -83,7 +83,8 @@ func (h *StockHandler) SyncStocks(c *gin.Context) {
 // @Param company query string false "Filter by company name (partial match)"
 // @Param brokerage query string false "Filter by brokerage name (partial match)"
 // @Param action query string false "Filter by action"
-// @Param rating query string false "Filter by rating_to"
+// @Param rating_from query string false "Filter by rating_from"
+// @Param rating_to query string false "Filter by rating_to"
 // @Param sortBy query string false "Sort by field (ticker, company, time, rating_to, action)" default(time)
 // @Param sortOrder query string false "Sort order (asc, desc)" default(desc)
 // @Param limit query int false "Number of items per page" default(50)
@@ -93,15 +94,16 @@ func (h *StockHandler) SyncStocks(c *gin.Context) {
 // @Router /api/v1/stocks [get]
 func (h *StockHandler) GetStocks(c *gin.Context) {
 	filter := domain.StockFilter{
-		Ticker:    c.Query("ticker"),
-		Company:   c.Query("company"),
-		Brokerage: c.Query("brokerage"),
-		Action:    c.Query("action"),
-		Rating:    c.Query("rating"),
-		SortBy:    c.DefaultQuery("sortBy", "time"),
-		SortOrder: c.DefaultQuery("sortOrder", "desc"),
-		Limit:     h.parseIntQuery(c, "limit", 50),
-		Offset:    h.parseIntQuery(c, "offset", 0),
+		Ticker:     c.Query("ticker"),
+		Company:    c.Query("company"),
+		Brokerage:  c.Query("brokerage"),
+		Action:     c.Query("action"),
+		RatingFrom: c.Query("rating_from"),
+		RatingTo:   c.Query("rating_to"),
+		SortBy:     c.DefaultQuery("sortBy", "time"),
+		SortOrder:  c.DefaultQuery("sortOrder", "desc"),
+		Limit:      h.parseIntQuery(c, "limit", 50),
+		Offset:     h.parseIntQuery(c, "offset", 0),
 	}
 
 	stocks, err := h.useCase.GetStocks(c.Request.Context(), filter)

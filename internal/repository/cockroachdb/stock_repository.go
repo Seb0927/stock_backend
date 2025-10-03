@@ -167,9 +167,15 @@ func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.Stock, e
 		argPos++
 	}
 
-	if filter.Rating != "" {
+	if filter.RatingFrom != "" {
+		query += fmt.Sprintf(" AND rating_from = $%d", argPos)
+		args = append(args, filter.RatingFrom)
+		argPos++
+	}
+
+	if filter.RatingTo != "" {
 		query += fmt.Sprintf(" AND rating_to = $%d", argPos)
-		args = append(args, filter.Rating)
+		args = append(args, filter.RatingTo)
 		argPos++
 	}
 
@@ -278,9 +284,15 @@ func (r *StockRepository) Count(filter domain.StockFilter) (int64, error) {
 		argPos++
 	}
 
-	if filter.Rating != "" {
+	if filter.RatingFrom != "" {
+		query += fmt.Sprintf(" AND rating_from = $%d", argPos)
+		args = append(args, filter.RatingFrom)
+		argPos++
+	}
+
+	if filter.RatingTo != "" {
 		query += fmt.Sprintf(" AND rating_to = $%d", argPos)
-		args = append(args, filter.Rating)
+		args = append(args, filter.RatingTo)
 	}
 
 	var count int64

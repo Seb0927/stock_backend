@@ -56,9 +56,13 @@ paths:
         in: query
         name: action
         type: string
+      - description: Filter by rating_from
+        in: query
+        name: rating_from
+        type: string
       - description: Filter by rating_to
         in: query
-        name: rating
+        name: rating_to
         type: string
       - default: time
         description: Sort by field (ticker, company, time, rating_to, action)

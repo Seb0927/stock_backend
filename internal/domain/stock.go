@@ -23,15 +23,16 @@ type Stock struct {
 
 // StockFilter represents filters for querying stocks
 type StockFilter struct {
-	Ticker    string
-	Company   string
-	Brokerage string
-	Action    string
-	Rating    string
-	SortBy    string
-	SortOrder string
-	Limit     int
-	Offset    int
+	Ticker     string
+	Company    string
+	Brokerage  string
+	Action     string
+	RatingFrom string
+	RatingTo   string
+	SortBy     string
+	SortOrder  string
+	Limit      int
+	Offset     int
 }
 
 // StockRepository defines the interface for stock data persistence
