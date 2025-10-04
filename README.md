@@ -58,11 +58,14 @@ stock_backend/
 - ✅ **Swagger/OpenAPI** - Interactive API documentation
 - ✅ **Database Integration** - CockroachDB with connection pooling
 - ✅ **External API Client** - Fetch stock data from external sources
+- ✅ **Smart Deduplication** - Automatically returns only the latest version of each stock (by ticker)
+- ✅ **Advanced Filtering** - Filter by ticker, company, brokerage, action, and ratings
+- ✅ **Flexible Sorting** - Sort by any field in ascending or descending order
 - ✅ **Comprehensive Testing** - Unit tests with mocks
 - ✅ **Structured Logging** - JSON logging with Zap
 - ✅ **Graceful Shutdown** - Proper cleanup on termination
 - ✅ **CORS Support** - Cross-origin resource sharing
-- ✅ **Pagination** - Efficient data retrieval
+- ✅ **Accurate Pagination** - Efficient data retrieval with correct counts
 - ✅ **Error Handling** - Consistent error responses
 - ✅ **Configuration Management** - Environment-based configuration
 
@@ -185,6 +188,8 @@ curl -X POST http://localhost:8080/api/v1/stocks/sync
 ```
 
 #### Get stocks with filters
+
+**Note:** The API automatically returns only the **latest version** of each stock (by ticker). When stocks are synchronized from the external API multiple times, they may have different timestamps. The API intelligently filters these duplicates and returns only the most recent entry for each ticker, ensuring accurate pagination counts.
 
 ```bash
 # Get all stocks (paginated)

@@ -133,10 +133,19 @@ func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.Stock, e
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Use a subquery to get only the latest stock per ticker
+	// This prevents duplicates when stocks are updated over time
 	query := `
+		WITH latest_stocks AS (
+			SELECT DISTINCT ON (ticker) 
+				id, ticker, target_from, target_to, company, action, brokerage,
+				rating_from, rating_to, time, created_at, updated_at
+			FROM stocks
+			ORDER BY ticker, time DESC
+		)
 		SELECT id, ticker, target_from, target_to, company, action, brokerage,
 		       rating_from, rating_to, time, created_at, updated_at
-		FROM stocks
+		FROM latest_stocks
 		WHERE 1=1
 	`
 
@@ -251,12 +260,22 @@ func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.Stock, e
 	return stocks, nil
 }
 
-// Count returns the total number of stocks matching the filter
+// Count returns the total number of unique stocks (latest per ticker) matching the filter
 func (r *StockRepository) Count(filter domain.StockFilter) (int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := `SELECT COUNT(*) FROM stocks WHERE 1=1`
+	// Count only the latest version of each ticker
+	query := `
+		WITH latest_stocks AS (
+			SELECT DISTINCT ON (ticker) 
+				id, ticker, target_from, target_to, company, action, brokerage,
+				rating_from, rating_to, time, created_at, updated_at
+			FROM stocks
+			ORDER BY ticker, time DESC
+		)
+		SELECT COUNT(*) FROM latest_stocks WHERE 1=1
+	`
 	args := []interface{}{}
 	argPos := 1
 
