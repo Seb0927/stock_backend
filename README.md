@@ -175,8 +175,9 @@ swag init -g cmd/api/main.go -o docs
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/health` | Health check |
-| GET | `/api/v1/stocks` | Get all stocks (with filters) |
+| GET | `/api/v1/stocks` | Get all stocks (with filters, returns latest version per ticker) |
 | GET | `/api/v1/stocks/:id` | Get stock by ID |
+| GET | `/api/v1/stock/:ticker` | Get all historical versions of a stock by ticker |
 | POST | `/api/v1/stocks/sync` | Sync stocks from external API |
 
 ### Example Requests
@@ -248,6 +249,58 @@ curl "http://localhost:8080/api/v1/stocks?company=Apple&rating_to=Overweight&sor
 
 ```bash
 curl http://localhost:8080/api/v1/stocks/1
+```
+
+#### Get all historical versions of a stock by ticker
+
+This endpoint returns **all historical records** for a specific ticker, ordered by time (newest first). Unlike the `/stocks` endpoint which returns only the latest version, this endpoint gives you the complete history.
+
+```bash
+# Get all historical versions of Apple stock
+curl http://localhost:8080/api/v1/stock/AAPL
+
+# Get all historical versions of AMD stock
+curl http://localhost:8080/api/v1/stock/AMD
+
+# Get all historical versions of Tesla stock
+curl http://localhost:8080/api/v1/stock/TSLA
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "1111776686872650500",
+      "ticker": "AAPL",
+      "target_from": "$200.00",
+      "target_to": "$220.00",
+      "company": "Apple Inc.",
+      "action": "upgrade",
+      "brokerage": "Goldman Sachs",
+      "rating_from": "Neutral",
+      "rating_to": "Buy",
+      "time": "2025-10-04T10:00:00Z",
+      "created_at": "2025-10-04T10:05:00Z",
+      "updated_at": "2025-10-04T10:05:00Z"
+    },
+    {
+      "id": "1111776413695180800",
+      "ticker": "AAPL",
+      "target_from": "$190.00",
+      "target_to": "$200.00",
+      "company": "Apple Inc.",
+      "action": "maintained",
+      "brokerage": "Morgan Stanley",
+      "rating_from": "Buy",
+      "rating_to": "Buy",
+      "time": "2025-10-01T14:30:00Z",
+      "created_at": "2025-10-01T14:35:00Z",
+      "updated_at": "2025-10-01T14:35:00Z"
+    }
+  ]
+}
 ```
 
 ## 🧪 Testing

@@ -40,6 +40,7 @@ type StockRepository interface {
 	CreateBatch(stocks []*Stock) error
 	FindByID(id int64) (*Stock, error)
 	FindAll(filter StockFilter) ([]*Stock, error)
+	FindByTicker(ticker string) ([]*Stock, error)
 	Count(filter StockFilter) (int64, error)
 }
 

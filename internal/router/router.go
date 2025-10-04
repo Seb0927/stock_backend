@@ -36,6 +36,9 @@ func SetupRouter(stockHandler *handler.StockHandler, logger *zap.Logger) *gin.En
 			stocks.GET("/:id", stockHandler.GetStockByID)
 			stocks.POST("/sync", stockHandler.SyncStocks)
 		}
+
+		// Get all historical versions of a stock by ticker
+		v1.GET("/stock/:ticker", stockHandler.GetStocksByTicker)
 	}
 
 	return router

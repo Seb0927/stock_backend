@@ -84,6 +84,17 @@ func (uc *StockUseCase) GetStockByID(ctx context.Context, id int64) (*domain.Sto
 	return stock, nil
 }
 
+// GetStocksByTicker retrieves all historical versions of a stock by ticker
+func (uc *StockUseCase) GetStocksByTicker(ctx context.Context, ticker string) ([]*domain.Stock, error) {
+	stocks, err := uc.repo.FindByTicker(ticker)
+	if err != nil {
+		uc.logger.Error("Failed to retrieve stocks by ticker", zap.String("ticker", ticker), zap.Error(err))
+		return nil, err
+	}
+
+	return stocks, nil
+}
+
 // GetStockCount returns the total count of stocks matching the filter
 func (uc *StockUseCase) GetStockCount(ctx context.Context, filter domain.StockFilter) (int64, error) {
 	count, err := uc.repo.Count(filter)

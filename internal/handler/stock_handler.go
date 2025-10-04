@@ -162,6 +162,41 @@ func (h *StockHandler) GetStockByID(c *gin.Context) {
 	})
 }
 
+// GetStocksByTicker godoc
+// @Summary Get all historical versions of a stock by ticker
+// @Description Retrieves all stock records for a given ticker symbol, ordered by time (newest first)
+// @Tags stocks
+// @Accept json
+// @Produce json
+// @Param ticker path string true "Stock ticker symbol (e.g., AAPL, GOOGL)"
+// @Success 200 {object} Response
+// @Failure 404 {object} Response
+// @Failure 500 {object} Response
+// @Router /api/v1/stock/{ticker} [get]
+func (h *StockHandler) GetStocksByTicker(c *gin.Context) {
+	ticker := c.Param("ticker")
+	if ticker == "" {
+		h.respondWithError(c, http.StatusBadRequest, domain.ErrInvalidInput)
+		return
+	}
+
+	stocks, err := h.useCase.GetStocksByTicker(c.Request.Context(), ticker)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			h.respondWithError(c, http.StatusNotFound, err)
+			return
+		}
+		h.logger.Error("Failed to get stocks by ticker", zap.String("ticker", ticker), zap.Error(err))
+		h.respondWithError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, Response{
+		Success: true,
+		Data:    stocks,
+	})
+}
+
 // HealthCheck godoc
 // @Summary Health check
 // @Description Check if the API is healthy

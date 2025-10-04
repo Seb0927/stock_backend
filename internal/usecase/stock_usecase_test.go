@@ -43,6 +43,14 @@ func (m *MockStockRepository) Count(filter domain.StockFilter) (int64, error) {
 	return args.Get(0).(int64), args.Error(1)
 }
 
+func (m *MockStockRepository) FindByTicker(ticker string) ([]*domain.Stock, error) {
+	args := m.Called(ticker)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*domain.Stock), args.Error(1)
+}
+
 // MockStockAPIClient is a mock implementation of the stock API client
 type MockStockAPIClient struct {
 	mock.Mock

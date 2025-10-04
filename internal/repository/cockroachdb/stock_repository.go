@@ -128,6 +128,59 @@ func (r *StockRepository) FindByID(id int64) (*domain.Stock, error) {
 	return stock, nil
 }
 
+// FindByTicker retrieves all stock records for a given ticker (all historical versions)
+func (r *StockRepository) FindByTicker(ticker string) ([]*domain.Stock, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT id, ticker, target_from, target_to, company, action, brokerage,
+		       rating_from, rating_to, time, created_at, updated_at
+		FROM stocks
+		WHERE ticker = $1
+		ORDER BY time DESC
+	`
+
+	rows, err := r.db.Query(ctx, query, ticker)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query stocks by ticker: %w", err)
+	}
+	defer rows.Close()
+
+	var stocks []*domain.Stock
+	for rows.Next() {
+		stock := &domain.Stock{}
+		err := rows.Scan(
+			&stock.ID,
+			&stock.Ticker,
+			&stock.TargetFrom,
+			&stock.TargetTo,
+			&stock.Company,
+			&stock.Action,
+			&stock.Brokerage,
+			&stock.RatingFrom,
+			&stock.RatingTo,
+			&stock.Time,
+			&stock.CreatedAt,
+			&stock.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan stock: %w", err)
+		}
+		stocks = append(stocks, stock)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating stocks: %w", err)
+	}
+
+	if len(stocks) == 0 {
+		return nil, domain.ErrNotFound
+	}
+
+	return stocks, nil
+}
+
 // FindAll retrieves stocks based on filters
 func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.Stock, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

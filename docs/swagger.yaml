@@ -34,6 +34,36 @@ info:
   title: Stock API
   version: "1.0"
 paths:
+  /api/v1/stock/{ticker}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all stock records for a given ticker symbol, ordered
+        by time (newest first)
+      parameters:
+      - description: Stock ticker symbol (e.g., AAPL, GOOGL)
+        in: path
+        name: ticker
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Get all historical versions of a stock by ticker
+      tags:
+      - stocks
   /api/v1/stocks:
     get:
       consumes:
