@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -194,6 +195,41 @@ func (h *StockHandler) GetStocksByTicker(c *gin.Context) {
 	c.JSON(http.StatusOK, Response{
 		Success: true,
 		Data:    stocks,
+	})
+}
+
+// GetRecommendations godoc
+// @Summary Get stock recommendations
+// @Description Analyzes stock data and returns the best investment recommendations based on ratings, actions, target prices, and recency
+// @Tags stocks
+// @Accept json
+// @Produce json
+// @Param limit query int false "Number of recommendations to return" default(10)
+// @Success 200 {object} Response
+// @Failure 500 {object} Response
+// @Router /api/v1/recommendations [get]
+func (h *StockHandler) GetRecommendations(c *gin.Context) {
+	limit := h.parseIntQuery(c, "limit", 10)
+
+	// Cap limit at 50
+	if limit > 50 {
+		limit = 50
+	}
+	if limit < 1 {
+		limit = 10
+	}
+
+	recommendations, err := h.useCase.GetRecommendations(c.Request.Context(), limit)
+	if err != nil {
+		h.logger.Error("Failed to get recommendations", zap.Error(err))
+		h.respondWithError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, Response{
+		Success: true,
+		Data:    recommendations,
+		Message: fmt.Sprintf("Top %d stock recommendations based on recent ratings, actions, and target prices", len(recommendations)),
 	})
 }
 

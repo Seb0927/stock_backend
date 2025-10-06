@@ -21,6 +21,14 @@ type Stock struct {
 	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
 }
 
+// StockRecommendation represents a stock with its recommendation score
+type StockRecommendation struct {
+	Stock          *Stock  `json:"stock"`
+	Score          float64 `json:"score"`
+	Reason         string  `json:"reason"`
+	TargetIncrease float64 `json:"target_increase_percent,omitempty"`
+}
+
 // StockFilter represents filters for querying stocks
 type StockFilter struct {
 	Ticker     string

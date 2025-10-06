@@ -34,6 +34,32 @@ info:
   title: Stock API
   version: "1.0"
 paths:
+  /api/v1/recommendations:
+    get:
+      consumes:
+      - application/json
+      description: Analyzes stock data and returns the best investment recommendations
+        based on ratings, actions, target prices, and recency
+      parameters:
+      - default: 10
+        description: Number of recommendations to return
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Get stock recommendations
+      tags:
+      - stocks
   /api/v1/stock/{ticker}:
     get:
       consumes:

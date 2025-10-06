@@ -56,6 +56,7 @@ stock_backend/
 - ✅ **Clean Architecture** - Maintainable and testable code structure
 - ✅ **RESTful API** - Standard HTTP methods and status codes
 - ✅ **Swagger/OpenAPI** - Interactive API documentation
+- ✅ **Stock Recommendations** - Multi-factor scoring algorithm to identify best investment opportunities
 - ✅ **Database Integration** - CockroachDB with connection pooling
 - ✅ **External API Client** - Fetch stock data from external sources
 - ✅ **Smart Deduplication** - Automatically returns only the latest version of each stock (by ticker)
@@ -178,6 +179,7 @@ swag init -g cmd/api/main.go -o docs
 | GET | `/api/v1/stocks` | Get all stocks (with filters, returns latest version per ticker) |
 | GET | `/api/v1/stocks/:id` | Get stock by ID |
 | GET | `/api/v1/stock/:ticker` | Get all historical versions of a stock by ticker |
+| GET | `/api/v1/recommendations` | Get stock investment recommendations based on scoring algorithm |
 | POST | `/api/v1/stocks/sync` | Sync stocks from external API |
 
 ### Example Requests
@@ -302,6 +304,103 @@ curl http://localhost:8080/api/v1/stock/TSLA
   ]
 }
 ```
+
+#### Get stock recommendations
+
+This endpoint analyzes all stock data and returns the best investment recommendations based on a sophisticated scoring algorithm.
+
+```bash
+# Get top 10 recommendations (default)
+curl http://localhost:8080/api/v1/recommendations
+
+# Get top 5 recommendations
+curl http://localhost:8080/api/v1/recommendations?limit=5
+
+# Get top 20 recommendations
+curl http://localhost:8080/api/v1/recommendations?limit=20
+```
+
+**Scoring Algorithm:**
+
+The recommendation engine evaluates each stock based on multiple weighted factors:
+
+| Factor | Weight | Description |
+|--------|--------|-------------|
+| **Action Type** | 30% | Upgrades score highest, downgrades score lowest |
+| **Rating Improvement** | 25% | Improvement from rating_from to rating_to (e.g., Neutral → Buy) |
+| **Target Price Increase** | 20% | Percentage increase from target_from to target_to |
+| **Recency** | 15% | More recent ratings score higher |
+| **Brokerage Reputation** | 10% | Top-tier brokerages (Goldman Sachs, Morgan Stanley) score higher |
+
+**Action Scores:**
+- Upgrade: 10.0
+- Initiated Coverage: 8.0
+- Target Raised: 7.0
+- Reiterated/Maintained: 6.0
+- Target Lowered: 3.0
+- Downgrade: 2.0
+
+**Rating Hierarchy (1-5 scale):**
+- **Strong Buy**: 5
+- **Buy / Speculative Buy / Overweight / Outperform / Market Outperform / Sector Outperform / Positive**: 4
+- **Hold / Neutral / In-Line / Market Perform / Sector Perform / Equal Weight**: 3
+- **Underweight / Underperform / Reduce**: 2
+- **Sell**: 1
+
+**Rating Improvement Bonus:**
+- Upgrade (e.g., Neutral → Buy): +4 points
+- Downgrade (e.g., Buy → Hold): -4 points
+- Maintained rating: No bonus/penalty
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "message": "Top 10 stock recommendations based on recent ratings, actions, and target prices",
+  "data": [
+    {
+      "stock": {
+        "id": "1111776686872650500",
+        "ticker": "NVDA",
+        "target_from": "$450.00",
+        "target_to": "$550.00",
+        "company": "NVIDIA Corporation",
+        "action": "upgrade",
+        "brokerage": "Goldman Sachs",
+        "rating_from": "Neutral",
+        "rating_to": "Buy",
+        "time": "2025-10-04T09:00:00Z"
+      },
+      "score": 8.95,
+      "reason": "Recent upgrade; Rating improved to Buy; 22.2% price target increase; Rated by Goldman Sachs",
+      "target_increase_percent": 22.2
+    },
+    {
+      "stock": {
+        "id": "1111776413695180801",
+        "ticker": "TSLA",
+        "target_from": "$240.00",
+        "target_to": "$300.00",
+        "company": "Tesla Inc.",
+        "action": "initiated coverage",
+        "brokerage": "Morgan Stanley",
+        "rating_from": "",
+        "rating_to": "Overweight",
+        "time": "2025-10-03T14:30:00Z"
+      },
+      "score": 8.52,
+      "reason": "Recent initiated coverage; Rating improved to Overweight; 25.0% price target increase; Rated by Morgan Stanley",
+      "target_increase_percent": 25.0
+    }
+  ]
+}
+```
+
+**Use Cases:**
+- Quick investment ideas based on recent analyst ratings
+- Identify stocks with strong upward momentum
+- Filter high-conviction recommendations from top brokerages
+- Compare multiple opportunities at once
 
 ## 🧪 Testing
 
