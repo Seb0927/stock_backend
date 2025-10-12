@@ -75,7 +75,7 @@ func Load() (*Config, error) {
 			MaxConnIdleTime: getEnvAsDuration("DB_MAX_CONN_IDLE_TIME", 1*time.Minute),
 		},
 		StockAPI: StockAPIConfig{
-			URL:     getEnv("STOCK_API_URL", "https://api.karenai.click/swechallenge/list"),
+			URL:     getEnv("STOCK_API_URL", ""),
 			APIKey:  getEnv("STOCK_API_KEY", ""),
 			Timeout: getEnvAsDuration("STOCK_API_TIMEOUT", 30*time.Second),
 		},
