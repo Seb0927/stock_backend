@@ -1,9 +1,12 @@
 # Stock API - Go Backend Service
 
+> [!NOTE]  
+> This project was made for a technical test
+
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A production-ready REST API built with Go for managing stock market data. This service fetches stock information from an external API and stores it in CockroachDB, providing comprehensive CRUD operations with filtering and pagination capabilities.
+A REST API built with Go for managing stock market data. This service fetches stock information from an external API and stores it in CockroachDB, providing comprehensive CRUD operations with filtering and pagination capabilities.
 
 ## 🏗️ Architecture
 
