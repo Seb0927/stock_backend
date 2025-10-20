@@ -34,6 +34,162 @@ info:
   title: Stock API
   version: "1.0"
 paths:
+  /api/v1/actions:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all analyst actions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Get all actions
+      tags:
+      - actions
+  /api/v1/actions/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single action by ID
+      parameters:
+      - description: Action ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Get an action by ID
+      tags:
+      - actions
+  /api/v1/brokerages:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all brokerage firms
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Get all brokerages
+      tags:
+      - brokerages
+  /api/v1/brokerages/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single brokerage firm by ID
+      parameters:
+      - description: Brokerage ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Get a brokerage by ID
+      tags:
+      - brokerages
+  /api/v1/ratings:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all rating terms with brokerage information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Get all ratings
+      tags:
+      - ratings
+  /api/v1/ratings/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single rating by ID
+      parameters:
+      - description: Rating ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: Get a rating by ID
+      tags:
+      - ratings
   /api/v1/recommendations:
     get:
       consumes:

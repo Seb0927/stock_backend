@@ -13,13 +13,27 @@ import (
 
 // StockRepository implements domain.StockRepository for CockroachDB
 type StockRepository struct {
-	db *pgxpool.Pool
+	db            *pgxpool.Pool
+	brokerageRepo *BrokerageRepository
+	actionRepo    *ActionRepository
+	ratingRepo    *RatingRepository
+}
+
+// getStringValue safely dereferences a *string returning empty string if nil
+func getStringValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 // NewStockRepository creates a new instance of StockRepository
-func NewStockRepository(db *pgxpool.Pool) *StockRepository {
+func NewStockRepository(db *pgxpool.Pool, brokerageRepo *BrokerageRepository, actionRepo *ActionRepository, ratingRepo *RatingRepository) *StockRepository {
 	return &StockRepository{
-		db: db,
+		db:            db,
+		brokerageRepo: brokerageRepo,
+		actionRepo:    actionRepo,
+		ratingRepo:    ratingRepo,
 	}
 }
 
@@ -59,22 +73,37 @@ func (r *StockRepository) insertChunk(stocks []*domain.Stock) error {
 	defer tx.Rollback(ctx)
 
 	query := `
-		INSERT INTO stocks (ticker, target_from, target_to, company, action, brokerage, rating_from, rating_to, time)
+		INSERT INTO stocks (ticker, target_from, target_to, company, action_id, brokerage_id, rating_from_id, rating_to_id, time)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		ON CONFLICT (ticker, company, time) DO NOTHING
 		RETURNING id, created_at, updated_at
 	`
 
 	for _, stock := range stocks {
+		// Convert 0 to NULL for foreign keys (0 means no value)
+		var actionID, brokerageID, ratingFromID, ratingToID interface{}
+		if stock.ActionID > 0 {
+			actionID = stock.ActionID
+		}
+		if stock.BrokerageID > 0 {
+			brokerageID = stock.BrokerageID
+		}
+		if stock.RatingFromID > 0 {
+			ratingFromID = stock.RatingFromID
+		}
+		if stock.RatingToID > 0 {
+			ratingToID = stock.RatingToID
+		}
+
 		err := tx.QueryRow(ctx, query,
 			stock.Ticker,
 			stock.TargetFrom,
 			stock.TargetTo,
 			stock.Company,
-			stock.Action,
-			stock.Brokerage,
-			stock.RatingFrom,
-			stock.RatingTo,
+			actionID,
+			brokerageID,
+			ratingFromID,
+			ratingToID,
 			stock.Time,
 		).Scan(&stock.ID, &stock.CreatedAt, &stock.UpdatedAt)
 
@@ -90,29 +119,47 @@ func (r *StockRepository) insertChunk(stocks []*domain.Stock) error {
 	return nil
 }
 
-// FindByID retrieves a stock by its ID
-func (r *StockRepository) FindByID(id int64) (*domain.Stock, error) {
+// FindByID retrieves a stock by its ID with all joined details
+func (r *StockRepository) FindByID(id int64) (*domain.StockWithDetails, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	query := `
-		SELECT id, ticker, target_from, target_to, company, action, brokerage, 
-		       rating_from, rating_to, time, created_at, updated_at
-		FROM stocks
-		WHERE id = $1
+		SELECT 
+			s.id, s.ticker, s.target_from, s.target_to, s.company,
+			s.action_id, a.name as action_name,
+			s.brokerage_id, b.name as brokerage_name,
+			s.rating_from_id, rf.term as rating_from_term,
+			s.rating_to_id, rt.term as rating_to_term,
+			s.time, s.created_at, s.updated_at
+		FROM stocks s
+		LEFT JOIN actions a ON s.action_id = a.id
+		LEFT JOIN brokerages b ON s.brokerage_id = b.id
+		LEFT JOIN ratings rf ON s.rating_from_id = rf.id
+		LEFT JOIN ratings rt ON s.rating_to_id = rt.id
+		WHERE s.id = $1
 	`
 
-	stock := &domain.Stock{}
+	stock := &domain.StockWithDetails{}
+
+	// Use nullable types for scanning
+	var actionID, brokerageID, ratingFromID, ratingToID *int64
+	var actionName, brokerageName, ratingFromTerm, ratingToTerm *string
+
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&stock.ID,
 		&stock.Ticker,
 		&stock.TargetFrom,
 		&stock.TargetTo,
 		&stock.Company,
-		&stock.Action,
-		&stock.Brokerage,
-		&stock.RatingFrom,
-		&stock.RatingTo,
+		&actionID,
+		&actionName,
+		&brokerageID,
+		&brokerageName,
+		&ratingFromID,
+		&ratingFromTerm,
+		&ratingToID,
+		&ratingToTerm,
 		&stock.Time,
 		&stock.CreatedAt,
 		&stock.UpdatedAt,
@@ -125,20 +172,39 @@ func (r *StockRepository) FindByID(id int64) (*domain.Stock, error) {
 		return nil, fmt.Errorf("failed to find stock: %w", err)
 	}
 
+	// Assign nullable fields
+	stock.ActionID = actionID
+	stock.ActionName = getStringValue(actionName)
+	stock.BrokerageID = brokerageID
+	stock.BrokerageName = getStringValue(brokerageName)
+	stock.RatingFromID = ratingFromID
+	stock.RatingFromTerm = getStringValue(ratingFromTerm)
+	stock.RatingToID = ratingToID
+	stock.RatingToTerm = getStringValue(ratingToTerm)
+
 	return stock, nil
 }
 
 // FindByTicker retrieves all stock records for a given ticker (all historical versions)
-func (r *StockRepository) FindByTicker(ticker string) ([]*domain.Stock, error) {
+func (r *StockRepository) FindByTicker(ticker string) ([]*domain.StockWithDetails, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	query := `
-		SELECT id, ticker, target_from, target_to, company, action, brokerage,
-		       rating_from, rating_to, time, created_at, updated_at
-		FROM stocks
-		WHERE ticker = $1
-		ORDER BY time DESC
+		SELECT 
+			s.id, s.ticker, s.target_from, s.target_to, s.company,
+			s.action_id, a.name as action_name,
+			s.brokerage_id, b.name as brokerage_name,
+			s.rating_from_id, rf.term as rating_from_term,
+			s.rating_to_id, rt.term as rating_to_term,
+			s.time, s.created_at, s.updated_at
+		FROM stocks s
+		LEFT JOIN actions a ON s.action_id = a.id
+		LEFT JOIN brokerages b ON s.brokerage_id = b.id
+		LEFT JOIN ratings rf ON s.rating_from_id = rf.id
+		LEFT JOIN ratings rt ON s.rating_to_id = rt.id
+		WHERE s.ticker = $1
+		ORDER BY s.time DESC
 	`
 
 	rows, err := r.db.Query(ctx, query, ticker)
@@ -147,19 +213,28 @@ func (r *StockRepository) FindByTicker(ticker string) ([]*domain.Stock, error) {
 	}
 	defer rows.Close()
 
-	var stocks []*domain.Stock
+	var stocks []*domain.StockWithDetails
 	for rows.Next() {
-		stock := &domain.Stock{}
+		stock := &domain.StockWithDetails{}
+
+		// Use nullable types for scanning
+		var actionID, brokerageID, ratingFromID, ratingToID *int64
+		var actionName, brokerageName, ratingFromTerm, ratingToTerm *string
+
 		err := rows.Scan(
 			&stock.ID,
 			&stock.Ticker,
 			&stock.TargetFrom,
 			&stock.TargetTo,
 			&stock.Company,
-			&stock.Action,
-			&stock.Brokerage,
-			&stock.RatingFrom,
-			&stock.RatingTo,
+			&actionID,
+			&actionName,
+			&brokerageID,
+			&brokerageName,
+			&ratingFromID,
+			&ratingFromTerm,
+			&ratingToID,
+			&ratingToTerm,
 			&stock.Time,
 			&stock.CreatedAt,
 			&stock.UpdatedAt,
@@ -167,6 +242,17 @@ func (r *StockRepository) FindByTicker(ticker string) ([]*domain.Stock, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan stock: %w", err)
 		}
+
+		// Assign nullable fields
+		stock.ActionID = actionID
+		stock.ActionName = getStringValue(actionName)
+		stock.BrokerageID = brokerageID
+		stock.BrokerageName = getStringValue(brokerageName)
+		stock.RatingFromID = ratingFromID
+		stock.RatingFromTerm = getStringValue(ratingFromTerm)
+		stock.RatingToID = ratingToID
+		stock.RatingToTerm = getStringValue(ratingToTerm)
+
 		stocks = append(stocks, stock)
 	}
 
@@ -182,7 +268,7 @@ func (r *StockRepository) FindByTicker(ticker string) ([]*domain.Stock, error) {
 }
 
 // FindAll retrieves stocks based on filters
-func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.Stock, error) {
+func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.StockWithDetails, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -190,14 +276,24 @@ func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.Stock, e
 	// This prevents duplicates when stocks are updated over time
 	query := `
 		WITH latest_stocks AS (
-			SELECT DISTINCT ON (ticker) 
-				id, ticker, target_from, target_to, company, action, brokerage,
-				rating_from, rating_to, time, created_at, updated_at
-			FROM stocks
-			ORDER BY ticker, time DESC
+			SELECT DISTINCT ON (s.ticker) 
+				s.id, s.ticker, s.target_from, s.target_to, s.company,
+				s.action_id, a.name as action_name,
+				s.brokerage_id, b.name as brokerage_name,
+				s.rating_from_id, rf.term as rating_from_term,
+				s.rating_to_id, rt.term as rating_to_term,
+				s.time, s.created_at, s.updated_at
+			FROM stocks s
+			LEFT JOIN actions a ON s.action_id = a.id
+			LEFT JOIN brokerages b ON s.brokerage_id = b.id
+			LEFT JOIN ratings rf ON s.rating_from_id = rf.id
+			LEFT JOIN ratings rt ON s.rating_to_id = rt.id
+			ORDER BY s.ticker, s.time DESC
 		)
-		SELECT id, ticker, target_from, target_to, company, action, brokerage,
-		       rating_from, rating_to, time, created_at, updated_at
+		SELECT id, ticker, target_from, target_to, company,
+		       action_id, action_name, brokerage_id, brokerage_name,
+		       rating_from_id, rating_from_term, rating_to_id, rating_to_term,
+		       time, created_at, updated_at
 		FROM latest_stocks
 		WHERE 1=1
 	`
@@ -218,25 +314,25 @@ func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.Stock, e
 	}
 
 	if filter.Brokerage != "" {
-		query += fmt.Sprintf(" AND brokerage ILIKE $%d", argPos)
+		query += fmt.Sprintf(" AND brokerage_name ILIKE $%d", argPos)
 		args = append(args, "%"+filter.Brokerage+"%")
 		argPos++
 	}
 
 	if filter.Action != "" {
-		query += fmt.Sprintf(" AND action = $%d", argPos)
+		query += fmt.Sprintf(" AND action_name = $%d", argPos)
 		args = append(args, filter.Action)
 		argPos++
 	}
 
 	if filter.RatingFrom != "" {
-		query += fmt.Sprintf(" AND rating_from = $%d", argPos)
+		query += fmt.Sprintf(" AND rating_from_term = $%d", argPos)
 		args = append(args, filter.RatingFrom)
 		argPos++
 	}
 
 	if filter.RatingTo != "" {
-		query += fmt.Sprintf(" AND rating_to = $%d", argPos)
+		query += fmt.Sprintf(" AND rating_to_term = $%d", argPos)
 		args = append(args, filter.RatingTo)
 		argPos++
 	}
@@ -246,13 +342,13 @@ func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.Stock, e
 	if filter.SortBy != "" {
 		// Validate sortBy to prevent SQL injection
 		validSortFields := map[string]bool{
-			"ticker":    true,
-			"company":   true,
-			"time":      true,
-			"rating_to": true,
-			"action":    true,
-			"brokerage": true,
-			"target_to": true,
+			"ticker":         true,
+			"company":        true,
+			"time":           true,
+			"rating_to_term": true,
+			"action_name":    true,
+			"brokerage_name": true,
+			"target_to":      true,
 		}
 		if validSortFields[filter.SortBy] {
 			sortBy = filter.SortBy
@@ -283,19 +379,28 @@ func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.Stock, e
 	}
 	defer rows.Close()
 
-	stocks := []*domain.Stock{}
+	stocks := []*domain.StockWithDetails{}
 	for rows.Next() {
-		stock := &domain.Stock{}
+		stock := &domain.StockWithDetails{}
+
+		// Use nullable types for scanning
+		var actionID, brokerageID, ratingFromID, ratingToID *int64
+		var actionName, brokerageName, ratingFromTerm, ratingToTerm *string
+
 		err := rows.Scan(
 			&stock.ID,
 			&stock.Ticker,
 			&stock.TargetFrom,
 			&stock.TargetTo,
 			&stock.Company,
-			&stock.Action,
-			&stock.Brokerage,
-			&stock.RatingFrom,
-			&stock.RatingTo,
+			&actionID,
+			&actionName,
+			&brokerageID,
+			&brokerageName,
+			&ratingFromID,
+			&ratingFromTerm,
+			&ratingToID,
+			&ratingToTerm,
 			&stock.Time,
 			&stock.CreatedAt,
 			&stock.UpdatedAt,
@@ -303,6 +408,17 @@ func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.Stock, e
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan stock: %w", err)
 		}
+
+		// Assign nullable fields
+		stock.ActionID = actionID
+		stock.ActionName = getStringValue(actionName)
+		stock.BrokerageID = brokerageID
+		stock.BrokerageName = getStringValue(brokerageName)
+		stock.RatingFromID = ratingFromID
+		stock.RatingFromTerm = getStringValue(ratingFromTerm)
+		stock.RatingToID = ratingToID
+		stock.RatingToTerm = getStringValue(ratingToTerm)
+
 		stocks = append(stocks, stock)
 	}
 
@@ -321,11 +437,19 @@ func (r *StockRepository) Count(filter domain.StockFilter) (int64, error) {
 	// Count only the latest version of each ticker
 	query := `
 		WITH latest_stocks AS (
-			SELECT DISTINCT ON (ticker) 
-				id, ticker, target_from, target_to, company, action, brokerage,
-				rating_from, rating_to, time, created_at, updated_at
-			FROM stocks
-			ORDER BY ticker, time DESC
+			SELECT DISTINCT ON (s.ticker) 
+				s.id, s.ticker, s.target_from, s.target_to, s.company,
+				s.action_id, a.name as action_name,
+				s.brokerage_id, b.name as brokerage_name,
+				s.rating_from_id, rf.term as rating_from_term,
+				s.rating_to_id, rt.term as rating_to_term,
+				s.time, s.created_at, s.updated_at
+			FROM stocks s
+			LEFT JOIN actions a ON s.action_id = a.id
+			LEFT JOIN brokerages b ON s.brokerage_id = b.id
+			LEFT JOIN ratings rf ON s.rating_from_id = rf.id
+			LEFT JOIN ratings rt ON s.rating_to_id = rt.id
+			ORDER BY s.ticker, s.time DESC
 		)
 		SELECT COUNT(*) FROM latest_stocks WHERE 1=1
 	`
@@ -345,25 +469,25 @@ func (r *StockRepository) Count(filter domain.StockFilter) (int64, error) {
 	}
 
 	if filter.Brokerage != "" {
-		query += fmt.Sprintf(" AND brokerage ILIKE $%d", argPos)
+		query += fmt.Sprintf(" AND brokerage_name ILIKE $%d", argPos)
 		args = append(args, "%"+filter.Brokerage+"%")
 		argPos++
 	}
 
 	if filter.Action != "" {
-		query += fmt.Sprintf(" AND action = $%d", argPos)
+		query += fmt.Sprintf(" AND action_name = $%d", argPos)
 		args = append(args, filter.Action)
 		argPos++
 	}
 
 	if filter.RatingFrom != "" {
-		query += fmt.Sprintf(" AND rating_from = $%d", argPos)
+		query += fmt.Sprintf(" AND rating_from_term = $%d", argPos)
 		args = append(args, filter.RatingFrom)
 		argPos++
 	}
 
 	if filter.RatingTo != "" {
-		query += fmt.Sprintf(" AND rating_to = $%d", argPos)
+		query += fmt.Sprintf(" AND rating_to_term = $%d", argPos)
 		args = append(args, filter.RatingTo)
 	}
 

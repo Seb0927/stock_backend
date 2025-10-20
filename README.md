@@ -176,6 +176,7 @@ swag init -g cmd/api/main.go -o docs
 
 ### Available Endpoints
 
+#### Stock Endpoints
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/health` | Health check |
@@ -184,6 +185,24 @@ swag init -g cmd/api/main.go -o docs
 | GET | `/api/v1/stock/:ticker` | Get all historical versions of a stock by ticker |
 | GET | `/api/v1/recommendations` | Get stock investment recommendations based on scoring algorithm |
 | POST | `/api/v1/stocks/sync` | Sync stocks from external API |
+
+#### Brokerage Endpoints (Read-only)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/brokerages` | Get all brokerage firms |
+| GET | `/api/v1/brokerages/:id` | Get a specific brokerage by ID |
+
+#### Action Endpoints (Read-only)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/actions` | Get all analyst actions |
+| GET | `/api/v1/actions/:id` | Get a specific action by ID |
+
+#### Rating Endpoints (Read-only)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/ratings` | Get all rating terms with brokerage information |
+| GET | `/api/v1/ratings/:id` | Get a specific rating by ID |
 
 ### Example Requests
 

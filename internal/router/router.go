@@ -42,6 +42,27 @@ func SetupRouter(stockHandler *handler.StockHandler, logger *zap.Logger) *gin.En
 
 		// Get stock recommendations
 		v1.GET("/recommendations", stockHandler.GetRecommendations)
+
+		// Brokerage routes (read-only)
+		brokerages := v1.Group("/brokerages")
+		{
+			brokerages.GET("", stockHandler.GetBrokerages)
+			brokerages.GET("/:id", stockHandler.GetBrokerageByID)
+		}
+
+		// Action routes (read-only)
+		actions := v1.Group("/actions")
+		{
+			actions.GET("", stockHandler.GetActions)
+			actions.GET("/:id", stockHandler.GetActionByID)
+		}
+
+		// Rating routes (read-only)
+		ratings := v1.Group("/ratings")
+		{
+			ratings.GET("", stockHandler.GetRatings)
+			ratings.GET("/:id", stockHandler.GetRatingByID)
+		}
 	}
 
 	return router

@@ -14,15 +14,21 @@ import (
 
 // StockHandler handles HTTP requests for stock operations
 type StockHandler struct {
-	useCase *usecase.StockUseCase
-	logger  *zap.Logger
+	useCase     *usecase.StockUseCase
+	brokerageUC *usecase.BrokerageUseCase
+	actionUC    *usecase.ActionUseCase
+	ratingUC    *usecase.RatingUseCase
+	logger      *zap.Logger
 }
 
 // NewStockHandler creates a new StockHandler
-func NewStockHandler(useCase *usecase.StockUseCase, logger *zap.Logger) *StockHandler {
+func NewStockHandler(useCase *usecase.StockUseCase, brokerageUC *usecase.BrokerageUseCase, actionUC *usecase.ActionUseCase, ratingUC *usecase.RatingUseCase, logger *zap.Logger) *StockHandler {
 	return &StockHandler{
-		useCase: useCase,
-		logger:  logger,
+		useCase:     useCase,
+		brokerageUC: brokerageUC,
+		actionUC:    actionUC,
+		ratingUC:    ratingUC,
+		logger:      logger,
 	}
 }
 
@@ -268,5 +274,182 @@ func (h *StockHandler) respondWithError(c *gin.Context, statusCode int, err erro
 	c.JSON(statusCode, Response{
 		Success: false,
 		Error:   err.Error(),
+	})
+}
+
+// GetBrokerages godoc
+// @Summary Get all brokerages
+// @Description Retrieves all brokerage firms
+// @Tags brokerages
+// @Accept json
+// @Produce json
+// @Success 200 {object} Response
+// @Failure 500 {object} Response
+// @Router /api/v1/brokerages [get]
+func (h *StockHandler) GetBrokerages(c *gin.Context) {
+	brokerages, err := h.brokerageUC.GetAll(c.Request.Context())
+	if err != nil {
+		h.logger.Error("Failed to get brokerages", zap.Error(err))
+		h.respondWithError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, Response{
+		Success: true,
+		Data:    brokerages,
+	})
+}
+
+// GetBrokerageByID godoc
+// @Summary Get a brokerage by ID
+// @Description Retrieves a single brokerage firm by ID
+// @Tags brokerages
+// @Accept json
+// @Produce json
+// @Param id path int true "Brokerage ID"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 404 {object} Response
+// @Failure 500 {object} Response
+// @Router /api/v1/brokerages/{id} [get]
+func (h *StockHandler) GetBrokerageByID(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		h.respondWithError(c, http.StatusBadRequest, errors.New("invalid brokerage ID"))
+		return
+	}
+
+	brokerage, err := h.brokerageUC.GetByID(c.Request.Context(), id)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			h.respondWithError(c, http.StatusNotFound, err)
+			return
+		}
+		h.logger.Error("Failed to get brokerage", zap.Int64("id", id), zap.Error(err))
+		h.respondWithError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, Response{
+		Success: true,
+		Data:    brokerage,
+	})
+}
+
+// GetActions godoc
+// @Summary Get all actions
+// @Description Retrieves all analyst actions
+// @Tags actions
+// @Accept json
+// @Produce json
+// @Success 200 {object} Response
+// @Failure 500 {object} Response
+// @Router /api/v1/actions [get]
+func (h *StockHandler) GetActions(c *gin.Context) {
+	actions, err := h.actionUC.GetAll(c.Request.Context())
+	if err != nil {
+		h.logger.Error("Failed to get actions", zap.Error(err))
+		h.respondWithError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, Response{
+		Success: true,
+		Data:    actions,
+	})
+}
+
+// GetActionByID godoc
+// @Summary Get an action by ID
+// @Description Retrieves a single action by ID
+// @Tags actions
+// @Accept json
+// @Produce json
+// @Param id path int true "Action ID"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 404 {object} Response
+// @Failure 500 {object} Response
+// @Router /api/v1/actions/{id} [get]
+func (h *StockHandler) GetActionByID(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		h.respondWithError(c, http.StatusBadRequest, errors.New("invalid action ID"))
+		return
+	}
+
+	action, err := h.actionUC.GetByID(c.Request.Context(), id)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			h.respondWithError(c, http.StatusNotFound, err)
+			return
+		}
+		h.logger.Error("Failed to get action", zap.Int64("id", id), zap.Error(err))
+		h.respondWithError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, Response{
+		Success: true,
+		Data:    action,
+	})
+}
+
+// GetRatings godoc
+// @Summary Get all ratings
+// @Description Retrieves all rating terms with brokerage information
+// @Tags ratings
+// @Accept json
+// @Produce json
+// @Success 200 {object} Response
+// @Failure 500 {object} Response
+// @Router /api/v1/ratings [get]
+func (h *StockHandler) GetRatings(c *gin.Context) {
+	ratings, err := h.ratingUC.GetAll(c.Request.Context())
+	if err != nil {
+		h.logger.Error("Failed to get ratings", zap.Error(err))
+		h.respondWithError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, Response{
+		Success: true,
+		Data:    ratings,
+	})
+}
+
+// GetRatingByID godoc
+// @Summary Get a rating by ID
+// @Description Retrieves a single rating by ID
+// @Tags ratings
+// @Accept json
+// @Produce json
+// @Param id path int true "Rating ID"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 404 {object} Response
+// @Failure 500 {object} Response
+// @Router /api/v1/ratings/{id} [get]
+func (h *StockHandler) GetRatingByID(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		h.respondWithError(c, http.StatusBadRequest, errors.New("invalid rating ID"))
+		return
+	}
+
+	rating, err := h.ratingUC.GetByID(c.Request.Context(), id)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			h.respondWithError(c, http.StatusNotFound, err)
+			return
+		}
+		h.logger.Error("Failed to get rating", zap.Int64("id", id), zap.Error(err))
+		h.respondWithError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, Response{
+		Success: true,
+		Data:    rating,
 	})
 }

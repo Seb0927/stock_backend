@@ -63,11 +63,23 @@ func main() {
 
 	log.Info("Database schema initialized")
 
-	// Initialize layers
-	stockRepo := cockroachdb.NewStockRepository(db)
+	// Initialize repositories
+	brokerageRepo := cockroachdb.NewBrokerageRepository(db)
+	actionRepo := cockroachdb.NewActionRepository(db)
+	ratingRepo := cockroachdb.NewRatingRepository(db)
+	stockRepo := cockroachdb.NewStockRepository(db, brokerageRepo, actionRepo, ratingRepo)
+
+	// Initialize API client
 	stockAPIClient := client.NewStockAPIClient(&cfg.StockAPI)
-	stockUseCase := usecase.NewStockUseCase(stockRepo, stockAPIClient, log)
-	stockHandler := handler.NewStockHandler(stockUseCase, log)
+
+	// Initialize use cases
+	brokerageUC := usecase.NewBrokerageUseCase(brokerageRepo, log)
+	actionUC := usecase.NewActionUseCase(actionRepo, log)
+	ratingUC := usecase.NewRatingUseCase(ratingRepo, log)
+	stockUseCase := usecase.NewStockUseCase(stockRepo, stockAPIClient, brokerageUC, actionUC, ratingUC, log)
+
+	// Initialize handler
+	stockHandler := handler.NewStockHandler(stockUseCase, brokerageUC, actionUC, ratingUC, log)
 
 	// Setup router
 	r := router.SetupRouter(stockHandler, log)

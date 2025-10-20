@@ -13,17 +13,23 @@ import (
 
 // StockUseCase handles business logic for stock operations
 type StockUseCase struct {
-	repo      domain.StockRepository
-	apiClient domain.StockAPIClient
-	logger    *zap.Logger
+	repo        domain.StockRepository
+	apiClient   domain.StockAPIClient
+	brokerageUC *BrokerageUseCase
+	actionUC    *ActionUseCase
+	ratingUC    *RatingUseCase
+	logger      *zap.Logger
 }
 
 // NewStockUseCase creates a new StockUseCase
-func NewStockUseCase(repo domain.StockRepository, apiClient domain.StockAPIClient, logger *zap.Logger) *StockUseCase {
+func NewStockUseCase(repo domain.StockRepository, apiClient domain.StockAPIClient, brokerageUC *BrokerageUseCase, actionUC *ActionUseCase, ratingUC *RatingUseCase, logger *zap.Logger) *StockUseCase {
 	return &StockUseCase{
-		repo:      repo,
-		apiClient: apiClient,
-		logger:    logger,
+		repo:        repo,
+		apiClient:   apiClient,
+		brokerageUC: brokerageUC,
+		actionUC:    actionUC,
+		ratingUC:    ratingUC,
+		logger:      logger,
 	}
 }
 
@@ -39,6 +45,38 @@ func (uc *StockUseCase) SyncStocksFromAPI(ctx context.Context) (int, error) {
 	}
 
 	uc.logger.Info("Fetched stocks from API", zap.Int("count", len(stocks)))
+
+	// Initialize caches for foreign key resolution
+	brokerageCache := make(map[string]int64)
+	actionCache := make(map[string]int64)
+	ratingCache := make(map[string]int64)
+
+	// Resolve foreign keys for each stock
+	uc.logger.Info("Resolving foreign keys", zap.Int("total_stocks", len(stocks)))
+	for i, stock := range stocks {
+		if err := uc.resolveForeignKeysWithCache(ctx, stock, brokerageCache, actionCache, ratingCache); err != nil {
+			uc.logger.Error("Failed to resolve foreign keys",
+				zap.Int("stock_number", i+1),
+				zap.String("ticker", stock.Ticker),
+				zap.Error(err))
+			return 0, fmt.Errorf("failed to resolve foreign keys for stock %s: %w", stock.Ticker, err)
+		}
+
+		// Log progress every 100 stocks
+		if (i+1)%100 == 0 {
+			uc.logger.Info("Foreign key resolution progress",
+				zap.Int("processed", i+1),
+				zap.Int("total", len(stocks)),
+				zap.Int("cached_brokerages", len(brokerageCache)),
+				zap.Int("cached_actions", len(actionCache)),
+				zap.Int("cached_ratings", len(ratingCache)))
+		}
+	}
+
+	uc.logger.Info("Foreign key resolution completed",
+		zap.Int("unique_brokerages", len(brokerageCache)),
+		zap.Int("unique_actions", len(actionCache)),
+		zap.Int("unique_ratings", len(ratingCache)))
 
 	// Store stocks in batches
 	uc.logger.Info("Starting database insert", zap.Int("total_stocks", len(stocks)))
@@ -56,8 +94,86 @@ func (uc *StockUseCase) SyncStocksFromAPI(ctx context.Context) (int, error) {
 	return len(stocks), nil
 }
 
+// resolveForeignKeysWithCache resolves foreign keys using in-memory caching to reduce database queries
+func (uc *StockUseCase) resolveForeignKeysWithCache(
+	ctx context.Context,
+	stock *domain.Stock,
+	brokerageCache map[string]int64,
+	actionCache map[string]int64,
+	ratingCache map[string]int64,
+) error {
+	// Resolve Brokerage
+	if stock.Brokerage != "" {
+		if cachedID, exists := brokerageCache[stock.Brokerage]; exists {
+			stock.BrokerageID = cachedID
+		} else {
+			brokerage, err := uc.brokerageUC.GetOrCreate(ctx, stock.Brokerage)
+			if err != nil {
+				return fmt.Errorf("failed to resolve brokerage: %w", err)
+			}
+			stock.BrokerageID = brokerage.ID
+			brokerageCache[stock.Brokerage] = brokerage.ID
+		}
+	}
+
+	// Resolve Action
+	if stock.Action != "" {
+		if cachedID, exists := actionCache[stock.Action]; exists {
+			stock.ActionID = cachedID
+		} else {
+			action, err := uc.actionUC.GetOrCreate(ctx, stock.Action)
+			if err != nil {
+				return fmt.Errorf("failed to resolve action: %w", err)
+			}
+			stock.ActionID = action.ID
+			actionCache[stock.Action] = action.ID
+		}
+	}
+
+	// Resolve RatingFrom (ratings are global terms now)
+	if stock.RatingFrom != "" {
+		cacheKey := stock.RatingFrom
+		if cachedID, exists := ratingCache[cacheKey]; exists {
+			stock.RatingFromID = cachedID
+		} else {
+			ratingFrom, err := uc.ratingUC.GetOrCreate(ctx, stock.RatingFrom)
+			if err != nil {
+				return fmt.Errorf("failed to resolve rating_from: %w", err)
+			}
+			stock.RatingFromID = ratingFrom.ID
+			ratingCache[cacheKey] = ratingFrom.ID
+		}
+	}
+
+	// Resolve RatingTo (ratings are global terms now)
+	if stock.RatingTo != "" {
+		cacheKey := stock.RatingTo
+		if cachedID, exists := ratingCache[cacheKey]; exists {
+			stock.RatingToID = cachedID
+		} else {
+			ratingTo, err := uc.ratingUC.GetOrCreate(ctx, stock.RatingTo)
+			if err != nil {
+				return fmt.Errorf("failed to resolve rating_to: %w", err)
+			}
+			stock.RatingToID = ratingTo.ID
+			ratingCache[cacheKey] = ratingTo.ID
+		}
+	}
+
+	// Log each stock being processed
+	uc.logger.Debug("Stock resolved",
+		zap.String("ticker", stock.Ticker),
+		zap.String("company", stock.Company),
+		zap.Int64("brokerage_id", stock.BrokerageID),
+		zap.Int64("action_id", stock.ActionID),
+		zap.Int64("rating_from_id", stock.RatingFromID),
+		zap.Int64("rating_to_id", stock.RatingToID))
+
+	return nil
+}
+
 // GetStocks retrieves stocks with filters
-func (uc *StockUseCase) GetStocks(ctx context.Context, filter domain.StockFilter) ([]*domain.Stock, error) {
+func (uc *StockUseCase) GetStocks(ctx context.Context, filter domain.StockFilter) ([]*domain.StockWithDetails, error) {
 	// Set default pagination if not provided
 	if filter.Limit == 0 {
 		filter.Limit = 50
@@ -76,7 +192,7 @@ func (uc *StockUseCase) GetStocks(ctx context.Context, filter domain.StockFilter
 }
 
 // GetStockByID retrieves a single stock by ID
-func (uc *StockUseCase) GetStockByID(ctx context.Context, id int64) (*domain.Stock, error) {
+func (uc *StockUseCase) GetStockByID(ctx context.Context, id int64) (*domain.StockWithDetails, error) {
 	stock, err := uc.repo.FindByID(id)
 	if err != nil {
 		uc.logger.Error("Failed to retrieve stock", zap.Int64("id", id), zap.Error(err))
@@ -87,7 +203,7 @@ func (uc *StockUseCase) GetStockByID(ctx context.Context, id int64) (*domain.Sto
 }
 
 // GetStocksByTicker retrieves all historical versions of a stock by ticker
-func (uc *StockUseCase) GetStocksByTicker(ctx context.Context, ticker string) ([]*domain.Stock, error) {
+func (uc *StockUseCase) GetStocksByTicker(ctx context.Context, ticker string) ([]*domain.StockWithDetails, error) {
 	stocks, err := uc.repo.FindByTicker(ticker)
 	if err != nil {
 		uc.logger.Error("Failed to retrieve stocks by ticker", zap.String("ticker", ticker), zap.Error(err))
@@ -161,22 +277,22 @@ func (uc *StockUseCase) GetRecommendations(ctx context.Context, limit int) ([]*d
 }
 
 // calculateStockScore calculates a score for a stock based on multiple factors
-func (uc *StockUseCase) calculateStockScore(stock *domain.Stock) (float64, string, float64) {
+func (uc *StockUseCase) calculateStockScore(stock *domain.StockWithDetails) (float64, string, float64) {
 	var score float64
 	reasons := []string{}
 
 	// 1. Action Score (30% weight) - upgrade is best
-	actionScore := uc.getActionScore(stock.Action)
+	actionScore := uc.getActionScore(stock.ActionName)
 	score += actionScore * 0.30
 	if actionScore > 3 {
-		reasons = append(reasons, fmt.Sprintf("Recent %s", stock.Action))
+		reasons = append(reasons, fmt.Sprintf("Recent %s", stock.ActionName))
 	}
 
 	// 2. Rating Improvement Score (25% weight)
-	ratingScore := uc.getRatingImprovementScore(stock.RatingFrom, stock.RatingTo)
+	ratingScore := uc.getRatingImprovementScore(stock.RatingFromTerm, stock.RatingToTerm)
 	score += ratingScore * 0.25
 	if ratingScore > 3 {
-		reasons = append(reasons, fmt.Sprintf("Rating improved to %s", stock.RatingTo))
+		reasons = append(reasons, fmt.Sprintf("Rating improved to %s", stock.RatingToTerm))
 	}
 
 	// 3. Target Price Increase (20% weight)
@@ -203,10 +319,10 @@ func (uc *StockUseCase) calculateStockScore(stock *domain.Stock) (float64, strin
 	score += recencyScore * 0.15
 
 	// 5. Brokerage Reputation (10% weight)
-	brokerageScore := uc.getBrokerageScore(stock.Brokerage)
+	brokerageScore := uc.getBrokerageScore(stock.BrokerageName)
 	score += brokerageScore * 0.10
-	if brokerageScore >= 8 && stock.Brokerage != "" {
-		reasons = append(reasons, fmt.Sprintf("Rated by %s", stock.Brokerage))
+	if brokerageScore >= 8 && stock.BrokerageName != "" {
+		reasons = append(reasons, fmt.Sprintf("Rated by %s", stock.BrokerageName))
 	}
 
 	// Build reason string
