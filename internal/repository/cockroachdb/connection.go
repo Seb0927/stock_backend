@@ -45,6 +45,9 @@ func InitSchema(db *pgxpool.Pool) error {
 	defer cancel()
 
 	schema := `
+		-- Enable pg_trgm extension for fuzzy search
+		CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 		-- Brokerages table
 		CREATE TABLE IF NOT EXISTS brokerages (
 			id SERIAL PRIMARY KEY,
@@ -96,6 +99,10 @@ func InitSchema(db *pgxpool.Pool) error {
 		CREATE INDEX IF NOT EXISTS idx_stocks_time ON stocks(time DESC);
 		CREATE INDEX IF NOT EXISTS idx_stocks_brokerage_id ON stocks(brokerage_id);
 		CREATE INDEX IF NOT EXISTS idx_stocks_action_id ON stocks(action_id);
+
+		-- Trigram indexes for fuzzy search
+		CREATE INDEX IF NOT EXISTS idx_stocks_company_trgm ON stocks USING GIN (company gin_trgm_ops);
+		CREATE INDEX IF NOT EXISTS idx_brokerages_name_trgm ON brokerages USING GIN (name gin_trgm_ops);
 	`
 
 	_, err := db.Exec(ctx, schema)

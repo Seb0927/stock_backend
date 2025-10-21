@@ -308,15 +308,22 @@ func (r *StockRepository) FindAll(filter domain.StockFilter) ([]*domain.StockWit
 	}
 
 	if filter.Company != "" {
-		query += fmt.Sprintf(" AND company ILIKE $%d", argPos)
-		args = append(args, "%"+filter.Company+"%")
-		argPos++
+		// Fuzzy search with similarity matching (handles typos like "Aple" -> "Apple")
+		// Using trigram similarity: matches if similarity > 0.3 (configurable threshold)
+		query += fmt.Sprintf(" AND (company ILIKE $%d OR company %% $%d)", argPos, argPos+1)
+		searchTerm := filter.Company
+		args = append(args, "%"+searchTerm+"%") // ILIKE pattern matching
+		args = append(args, searchTerm)         // Trigram similarity matching
+		argPos += 2
 	}
 
 	if filter.Brokerage != "" {
-		query += fmt.Sprintf(" AND brokerage_name ILIKE $%d", argPos)
-		args = append(args, "%"+filter.Brokerage+"%")
-		argPos++
+		// Fuzzy search with similarity matching (handles typos)
+		query += fmt.Sprintf(" AND (brokerage_name ILIKE $%d OR brokerage_name %% $%d)", argPos, argPos+1)
+		searchTerm := filter.Brokerage
+		args = append(args, "%"+searchTerm+"%") // ILIKE pattern matching
+		args = append(args, searchTerm)         // Trigram similarity matching
+		argPos += 2
 	}
 
 	if filter.Action != "" {
@@ -463,15 +470,22 @@ func (r *StockRepository) Count(filter domain.StockFilter) (int64, error) {
 	}
 
 	if filter.Company != "" {
-		query += fmt.Sprintf(" AND company ILIKE $%d", argPos)
-		args = append(args, "%"+filter.Company+"%")
-		argPos++
+		// Fuzzy search with similarity matching (handles typos like "Aple" -> "Apple")
+		// Using trigram similarity: matches if similarity > 0.3 (configurable threshold)
+		query += fmt.Sprintf(" AND (company ILIKE $%d OR company %% $%d)", argPos, argPos+1)
+		searchTerm := filter.Company
+		args = append(args, "%"+searchTerm+"%") // ILIKE pattern matching
+		args = append(args, searchTerm)         // Trigram similarity matching
+		argPos += 2
 	}
 
 	if filter.Brokerage != "" {
-		query += fmt.Sprintf(" AND brokerage_name ILIKE $%d", argPos)
-		args = append(args, "%"+filter.Brokerage+"%")
-		argPos++
+		// Fuzzy search with similarity matching (handles typos)
+		query += fmt.Sprintf(" AND (brokerage_name ILIKE $%d OR brokerage_name %% $%d)", argPos, argPos+1)
+		searchTerm := filter.Brokerage
+		args = append(args, "%"+searchTerm+"%") // ILIKE pattern matching
+		args = append(args, searchTerm)         // Trigram similarity matching
+		argPos += 2
 	}
 
 	if filter.Action != "" {
